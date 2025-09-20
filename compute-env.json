@@ -8,12 +8,13 @@
     "minvCpus": 0,
     "maxvCpus": 8,
     "subnets": [
-      "subnet-xxxxxxxxxxxxxxxxx",
-      "subnet-yyyyyyyyyyyyyyyyy"
+      "subnet-0b9a6193a6db0c8ea",
+      "subnet-0fc433d6bf567cb13"
     ],
     "securityGroupIds": [
-      "sg-zzzzzzzzzzzzzzzzzz"
-    ]
+      "sg-0414a44ab0395ba3f"
+    ],
+    "instanceRole": "arn:aws:iam::213899362496:instance-profile/ecsInstanceRole"
   },
-  "serviceRole": "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/aws-service-role/batch.amazonaws.com/AWSServiceRoleForBatch"
+  "serviceRole": "arn:aws:iam::213899362496:role/aws-service-role/batch.amazonaws.com/AWSServiceRoleForBatch"
 }

@@ -1,0 +1,9 @@
+{
+  "jobDefinitionName": "fastqc-job-def",
+  "type": "container",
+  "containerProperties": {
+    "image": "213899362496.dkr.ecr.us-east-1.amazonaws.com/genomics/fastqc-worker:latest",
+    "vcpus": 1,
+    "memory": 1024
+  }
+}
