@@ -1,0 +1,19 @@
+{
+  "type": "MANAGED",
+  "computeResources": {
+    "type": "EC2",
+    "instanceTypes": [
+      "optimal"
+    ],
+    "minvCpus": 0,
+    "maxvCpus": 8,
+    "subnets": [
+      "subnet-xxxxxxxxxxxxxxxxx",
+      "subnet-yyyyyyyyyyyyyyyyy"
+    ],
+    "securityGroupIds": [
+      "sg-zzzzzzzzzzzzzzzzzz"
+    ]
+  },
+  "serviceRole": "arn:aws:iam::YOUR_AWS_ACCOUNT_ID:role/aws-service-role/batch.amazonaws.com/AWSServiceRoleForBatch"
+}
