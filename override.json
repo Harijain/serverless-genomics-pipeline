@@ -1,0 +1,7 @@
+{
+  "command": [
+    "run_fastqc.sh",
+    "s3://1000genomes/phase3/data/HG00096/sequence_read/ERR001268_1.fastq.gz",
+    "s3://genomics-pipeline-results-bhai-12345/"
+  ]
+}
