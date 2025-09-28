@@ -1,27 +1,38 @@
 #!/bin/bash
-# A more robust script with explicit error handling
+# This script runs the BWA alignment.
+# It takes 3 arguments: Input FASTQ S3 URI, Output S3 Path, Sample Name
 
-# Immediately exit if any command fails
 set -e
 
-INPUT_FILE_URI=$1
-OUTPUT_RESULTS_URI=$2
+INPUT_FASTQ_URI=$1
+OUTPUT_S3_PATH=$2
+SAMPLE_NAME=$3
 
-echo "BWA Worker Started."
-echo "Input received: $INPUT_FILE_URI"
-echo "Output location: $OUTPUT_RESULTS_URI"
+echo "Starting BWA alignment for sample: ${SAMPLE_NAME}"
 
-echo "Creating dummy output file..."
-touch bwa_output.txt
-echo "This is a dummy result from the BWA worker" > bwa_output.txt
+# For this test, we will use a small, public E. coli reference genome
+REF_GENOME_S3_PATH="s3://ngi-igenomes/Escherichia_coli_K_12_DH10B/NCBI/2008-03-17/Sequence/BWAIndex/"
 
-echo "Attempting to upload dummy file to S3..."
-aws s3 cp bwa_output.txt $OUTPUT_RESULTS_URI --region us-east-1
+# Create local directories inside the container to work in
+mkdir -p /tmp/data/input
+mkdir -p /tmp/data/reference
 
-# Explicitly check the exit code of the last command
-if [ $? -ne 0 ]; then
-  echo "FATAL: S3 upload failed! Check IAM permissions."
-  exit 1
-fi
+# Download the input FASTQ file from the 1000genomes bucket
+echo "Downloading FASTQ file..."
+aws s3 cp ${INPUT_FASTQ_URI} /tmp/data/input/ --region us-east-1 --request-payer requester
 
-echo "BWA worker finished successfully."
+# Download the reference genome index files
+echo "Downloading reference genome..."
+aws s3 sync ${REF_GENOME_S3_PATH} /tmp/data/reference/ --region us-east-1
+
+LOCAL_FASTQ_FILE="/tmp/data/input/$(basename ${INPUT_FASTQ_URI})"
+
+# Run the BWA mem alignment command
+echo "Running BWA mem..."
+bwa mem /tmp/data/reference/genome.fa ${LOCAL_FASTQ_FILE} > /tmp/data/${SAMPLE_NAME}.sam
+
+# Upload the final SAM file to our results bucket
+echo "Uploading SAM file to S3..."
+aws s3 cp /tmp/data/${SAMPLE_NAME}.sam ${OUTPUT_S3_PATH} --region us-east-1
+
+echo "BWA alignment complete."
