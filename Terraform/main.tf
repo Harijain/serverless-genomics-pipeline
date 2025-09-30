@@ -26,13 +26,19 @@ data "aws_security_group" "default" {
   vpc_id = data.aws_vpc.default.id
 }
 
+# --- ECR Repositories ---
 resource "aws_ecr_repository" "fastqc_worker_repo" {
   name = "genomics/fastqc-worker"
 }
 resource "aws_ecr_repository" "bwa_worker_repo" {
   name = "genomics/bwa-worker"
 }
+resource "aws_ecr_repository" "gatk_worker_repo" {
+  name = "genomics/gatk-worker"
+}
 
+
+# --- IAM Roles & Policies ---
 resource "aws_iam_role" "ecs_instance_role" {
   name = "ecsInstanceRole"
   assume_role_policy = jsonencode({
@@ -104,6 +110,7 @@ resource "aws_s3_bucket" "results_bucket" {
   bucket = "genomics-pipeline-results-bhai-12345" # <-- IMPORTANT: Change this to a new unique bucket name!
 }
 
+# --- AWS Batch ---
 resource "aws_batch_compute_environment" "genomics_ce" {
   compute_environment_name = "genomics-compute-env"
   service_role             = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/aws-service-role/batch.amazonaws.com/AWSServiceRoleForBatch"
@@ -130,7 +137,7 @@ resource "aws_batch_job_definition" "fastqc_job_def_final" {
   name = "fastqc-job-def-final"
   type = "container"
   container_properties = jsonencode({
-    image            = "${aws_ecr_repository.fastqc_worker_repo.repository_url}:v8", # Make sure this tag exists in your ECR
+    image            = "${aws_ecr_repository.fastqc_worker_repo.repository_url}:v8",
     vcpus            = 1,
     memory           = 1024,
     jobRoleArn       = aws_iam_role.genomics_job_role.arn,
@@ -142,7 +149,7 @@ resource "aws_batch_job_definition" "bwa_job_def_final" {
   name = "bwa-job-def-final"
   type = "container"
   container_properties = jsonencode({
-    image            = "${aws_ecr_repository.bwa_worker_repo.repository_url}:v3", # Make sure this tag exists in your ECR
+    image            = "${aws_ecr_repository.bwa_worker_repo.repository_url}:v5",
     vcpus            = 1,
     memory           = 2048,
     jobRoleArn       = aws_iam_role.genomics_job_role.arn,
@@ -150,12 +157,25 @@ resource "aws_batch_job_definition" "bwa_job_def_final" {
   })
 }
 
+resource "aws_batch_job_definition" "gatk_job_def_final" {
+  name = "gatk-job-def-final"
+  type = "container"
+  container_properties = jsonencode({
+    image            = "${aws_ecr_repository.gatk_worker_repo.repository_url}:latest",
+    vcpus            = 1,
+    memory           = 1024,
+    jobRoleArn       = aws_iam_role.genomics_job_role.arn,
+    executionRoleArn = aws_iam_role.ecs_task_execution_role.arn
+  })
+}
+
+# --- Step Functions ---
 resource "aws_sfn_state_machine" "genomics_pipeline_sm" {
   name     = "Genomics-Pipeline-from-Terraform"
   role_arn = aws_iam_role.step_functions_role.arn
 
   definition = jsonencode({
-    Comment = "Final Genomics Pipeline - Deployed by Terraform"
+    Comment = "Final 3-Step Genomics Pipeline - Deployed by Terraform"
     StartAt = "Run FastQC"
     States = {
       "Run FastQC" = {
@@ -180,7 +200,21 @@ resource "aws_sfn_state_machine" "genomics_pipeline_sm" {
           JobQueue      = aws_batch_job_queue.genomics_jq.arn
           JobDefinition = aws_batch_job_definition.bwa_job_def_final.arn
           ContainerOverrides = {
-            "Command.$" = "States.Array('run_bwa.sh', $.InputS3Uri, $.OutputS3Uri)"
+            "Command.$" = "States.Array('run_bwa.sh', $.InputS3Uri, $.OutputS3Uri, $.SampleName)"
+          }
+        }
+        ResultPath = "$.bwa_result"
+        Next       = "Run GATK"
+      }
+      "Run GATK" = {
+        Type     = "Task"
+        Resource = "arn:aws:states:::batch:submitJob.sync"
+        Parameters = {
+          JobName       = "GATK-Execution"
+          JobQueue      = aws_batch_job_queue.genomics_jq.arn
+          JobDefinition = aws_batch_job_definition.gatk_job_def_final.arn
+          ContainerOverrides = {
+            "Command.$" = "States.Array('run_gatk.sh', $.OutputS3Uri)"
           }
         }
         End = true
