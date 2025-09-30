@@ -87,3 +87,8 @@ Terraform Versioning Conflicts: Solved multiple Unexpected attribute errors by l
 Docker ENTRYPOINT vs. CMD: Refactored the Docker containers to be more flexible by removing a hardcoded ENTRYPOINT, allowing them to be used as general-purpose workers that can run any command.
 
 Step Functions Parameter Passing: Mastered the Amazon States Language (ASL) syntax, specifically using "Command.$": "States.Array(...)", to dynamically pass parameters from the state machine's input to the container's command.
+
+Screenshots of project :
+<img width="1920" height="1080" alt="Workflow" src="https://github.com/user-attachments/assets/fc7b90d5-89b5-4997-9aaf-0f599c77d74d" />
+<img width="1920" height="1080" alt="Result" src="https://github.com/user-attachments/assets/4f34c35f-390a-4df0-96b1-afee961640f7" />
+
