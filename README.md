@@ -1,14 +1,15 @@
-Serverless Genomics Analysis Pipeline on AWS.
+Serverless Genomics Analysis Pipeline on AWS
+A fully automated, production-grade, 3-step bioinformatics pipeline on AWS, deployed and managed entirely with Terraform.
 
-An automated, scalable, and cost-effective pipeline for running complex bioinformatics workflows on AWS using serverless technologies.
+Project Overview
+The cost of DNA sequencing has plummeted, but the real challenge for scientists is processing the massive datasets produced. This project solves that problem by creating a cost-effective, scalable, and serverless platform to run complex genomics analysis without requiring deep cloud infrastructure expertise.
 
-## The Problem
-In the world of life sciences, processing massive genomics datasets is slow, expensive, and complex. This project builds a production-grade platform to automate this analysis, allowing researchers to get from raw DNA data to meaningful results without needing to be cloud infrastructure experts.
+Architecture
+The pipeline is orchestrated by AWS Step Functions, managing a series of containerized jobs on AWS Batch. This serverless approach ensures that compute resources are only provisioned when a job is active, making the solution highly cost-efficient. The entire infrastructure is defined as code using Terraform.
 
-## Architecture
-The entire pipeline is orchestrated by AWS Step Functions, which manages a series of containerized jobs running on AWS Batch. This serverless approach ensures that compute resources are only used when a job is active, making the solution highly cost-efficient. The entire infrastructure is defined as code using Terraform.
+**
 
-## Tech Stack
+Tech Stack
 Orchestration: AWS Step Functions
 
 Serverless Compute: AWS Batch
@@ -23,76 +24,66 @@ Permissions: AWS IAM
 
 Infrastructure as Code (IaC): Terraform
 
-## Features
-Fully Automated: The entire multi-step workflow is managed by a Step Functions state machine.
+Final Workflow
+The state machine orchestrates a 3-step bioinformatics workflow:
 
-Scalable & Parallel: AWS Batch automatically scales the compute resources (EC2 instances) based on job demand.
+Quality Control (FastQC): A fully functional job that runs the fastqc tool on a given input file.
 
-Cost-Effective: With minvCpus = 0, the infrastructure costs nothing when idle.
+Alignment (BWA): A functional job that uses a self-hosted reference genome to run the bwa mem alignment tool.
 
-Containerized Tools: All bioinformatics tools (FastQC, BWA) are packaged in Docker for portability and dependency management.
+Variant Calling (GATK): A placeholder job that demonstrates the completion of the 3-step orchestration, ready for the real GATK tool to be dropped in.
 
-Infrastructure as Code: The entire AWS environment is defined in Terraform, allowing for one-command deployment and destruction.
+Setup & Deployment
+The entire AWS infrastructure for this project is managed by Terraform.
 
-## Project Structure
-.
-├── terraform/
-│   └── main.tf         # The complete infrastructure definition
-├── workers/
-│   ├── fastqc-worker/
-│   │   ├── Dockerfile
-│   │   └── run_fastqc.sh
-│   └── bwa-worker/
-│       ├── Dockerfile
-│       └── run_bwa.sh
-└── README.md
-## Setup & Deployment
-The entire infrastructure can be deployed with a few commands.
+Prerequisites:
 
-Clone the repository:
+An AWS account with configured credentials.
+
+Terraform installed.
+
+Docker installed.
+
+Deploy the Infrastructure:
 
 Bash
 
-git clone https://github.com/Harijain/serverless-genomics-pipeline.git
-Navigate to the Terraform directory:
+# Navigate to the Terraform directory
+cd terraform
 
-Bash
-
-cd serverless-genomics-pipeline/terraform
-Initialize Terraform:
-
-Bash
-
+# Initialize Terraform
 terraform init
-Apply the configuration:
 
-Bash
-
+# Apply the configuration to build all AWS resources
 terraform apply
-(Note: You will need to have your AWS credentials configured for the AWS CLI).
+Push the Worker Images:
+Once the ECR repositories are created by Terraform, build and push the Docker images from their respective workers subdirectories.
 
-## How to Use
+How to Run the Pipeline
 Navigate to the AWS Step Functions console and find the Genomics-Pipeline-from-Terraform state machine.
 
 Click "Start execution".
 
-Provide an input JSON specifying the input data location and the output location.
+Provide an input JSON specifying the input data, output location, and a sample name.
 
 JSON
 
 {
-  "InputS3Uri": "s3://1000genomes/phase3/data/HG00096/sequence_read/SRR062634.filt.fastq.gz",
-  "OutputS3Uri": "s3://your-unique-results-bucket-name/"
+  "InputS3Uri": "s3://your-input-bucket/your-test-file.txt",
+  "OutputS3Uri": "s3://your-results-bucket/",
+  "SampleName": "my-pipeline-test"
 }
 The pipeline will run, and the final analysis reports will be saved in your specified S3 results bucket.
 
-## Key Learnings & Challenges
-This project involved solving several real-world engineering problems:
+Key Learnings & Debugging Journey
+This project involved solving several real-world engineering problems, providing deep practical experience:
 
-Persistent 404 Not Found S3 Error: Solved by discovering the public 1000genomes bucket is a "Requester Pays" bucket, which required adding a --request-payer flag to all AWS CLI S3 commands.
+404 Not Found S3 Error: Solved a persistent access error by discovering that a public S3 bucket was a "Requester Pays" bucket, which required adding a --request-payer flag to all AWS CLI commands.
 
-Task failed to start in AWS Batch: Debugged a complex IAM issue by differentiating between the Job Role (for application permissions like S3 access) and the Execution Role (for system permissions like pulling from ECR).
+Task failed to start in AWS Batch: Debugged a complex IAM issue by identifying the critical difference between the Job Role (for application permissions like S3 access) and the Execution Role (for system permissions like pulling from ECR).
 
-Terraform Versioning Conflicts: Solved multiple Unexpected attribute errors by locking the AWS provider version to ~> 5.0 in the Terraform configuration and correcting the resource syntax.
+Terraform Versioning Conflicts: Solved multiple Unexpected attribute errors by locking the AWS provider version in the configuration and updating the resource syntax to match modern standards.
 
-Docker ENTRYPOINT vs. CMD: Refactored the Docker containers to be more flexible by removing a hardcoded ENTRYPOINT, allowing them to be used as general-purpose workers.
+Docker ENTRYPOINT vs. CMD: Refactored the Docker containers to be more flexible by removing a hardcoded ENTRYPOINT, allowing them to be used as general-purpose workers that can run any command.
+
+Step Functions Parameter Passing: Mastered the Amazon States Language (ASL) syntax, specifically using "Command.$": "States.Array(...)", to dynamically pass parameters from the state machine's input to the container's command.
