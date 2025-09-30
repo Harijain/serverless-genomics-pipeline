@@ -93,9 +93,9 @@ Result:
 <img width="1920" height="1080" alt="Workflow" src="https://github.com/user-attachments/assets/fc7b90d5-89b5-4997-9aaf-0f599c77d74d" />
 S3 output:
 <img width="1920" height="1080" alt="Result" src="https://github.com/user-attachments/assets/4f34c35f-390a-4df0-96b1-afee961640f7" />
-FastQc Report:
+Docker images
 <img width="1920" height="1080" alt="Screenshot (124)" src="https://github.com/user-attachments/assets/ffdb2475-617e-48e8-860a-0ccef7a9eb00" />
-Docker Images:
+FastQc Report:
 <img width="1920" height="1080" alt="Screenshot (112)" src="https://github.com/user-attachments/assets/08d55369-b37c-4d81-b899-76be03d6d42a" />
 
 
